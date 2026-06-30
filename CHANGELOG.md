@@ -4,6 +4,18 @@ All notable changes to this project are documented in this file.
 
 ## Unreleased
 
+**Claude Code integration: SessionStart hook.**
+
+Added:
+- `shiprun scan` now installs (idempotently) a `SessionStart` hook in
+  `.claude/settings.json`, plus the generated script it points to
+  (`.claude/hooks/shiprun-context.cjs`). Every future Claude Code session in
+  that repo automatically gets a short summary of open findings injected
+  into context before the first prompt — no manual "read SHIPRUN.md" step.
+  Opt out with `shiprun scan --no-hook`. See
+  [README.md#claude-code-integration](README.md#claude-code-integration) and
+  [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#why-a-sessionstart-hook-not-an-mcp-server-yet).
+
 **Presentation pass — first-impression strength, no new checks.**
 
 Added:

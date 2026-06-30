@@ -157,6 +157,39 @@ teammates — it's a few KB of JSON, not a database, not a secret.
 Full schema and the reasoning for "flat JSON, not a graph database" is in
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#why-shirunfindingsjson-not-a-graph-database).
 
+## Claude Code integration
+
+The first time you run `shiprun scan` in a repo, it also registers a
+`SessionStart` hook in `.claude/settings.json` (skip with `--no-hook`). After
+that, every time you open Claude Code in that repo, a small generated script
+(`.claude/hooks/shiprun-context.cjs`) reads `.shiprun/findings.json` and
+injects a short summary into Claude's context automatically — before you
+type anything:
+
+```
+shiprun: 4 open finding(s) (1 high, 2 medium, 1 low).
+- [high] API route queries the database with no visible auth check (app/api/admin/route.ts)
+- [medium] No CI pipeline or deploy config found
+- [medium] No "build" script in package.json
+Run "shiprun list" for the full list, "shiprun dismiss <id>" to suppress one that doesn't apply.
+```
+
+So instead of explaining what's wrong before asking Claude to fix something,
+you can just say "fix the admin route issue" — it already has the file,
+line, and reason. The hook:
+
+- Is idempotent (re-running `shiprun scan` won't duplicate the registration)
+- Merges into your existing `.claude/settings.json` rather than overwriting
+  it, and silently does nothing if that file isn't valid JSON
+- Prints nothing if there are no open findings, or if you haven't scanned
+  yet — first run of `shiprun` in a repo is what creates it
+- Costs no tokens passively; it only runs once per session start and the
+  injected text is capped well under 300 characters in practice
+
+This is genuinely the entire integration today — no MCP server, no daemon,
+no per-repo agent definitions yet. Those are still on the
+[Roadmap](#roadmap-not-yet-built).
+
 ## What checks actually look like
 
 Every check is a pure function `(stack: StackInfo) => Promise<Finding[]>`
@@ -196,10 +229,10 @@ for your repo, dismiss it rather than treating the output as gospel.
   frontend / devops) that read `.shiprun/findings.json` directly, so
   `@security-agent fix the auth issue` starts from the actual finding instead
   of re-deriving context.
-- A `SessionStart` hook that injects a short summary ("3 open critical
-  findings, last scan 2 days ago") at the start of every Claude Code session
-  in the repo.
 - Broader stack support beyond Next.js + Supabase, once this one is proven.
+
+Shipped: the `SessionStart` hook described above in
+[Claude Code integration](#claude-code-integration).
 
 This order is deliberate — see the build-order reasoning in
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Each layer is gated on real

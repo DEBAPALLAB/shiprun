@@ -6,6 +6,7 @@ import pc from "picocolors";
 import { runScan } from "./scan.js";
 import { renderMarkdown, readinessScore } from "./report.js";
 import { reconcile, dismissFinding, reopenFinding, listAllFindings, appendHistory } from "./store.js";
+import { ensureSessionStartHook } from "./hook.js";
 import type { FindingStatus } from "./store.js";
 
 const program = new Command();
@@ -19,7 +20,8 @@ program
   .command("scan", { isDefault: true })
   .description("Scan the current repo and write an open-findings checklist to SHIPRUN.md")
   .option("-o, --out <file>", "output file", "SHIPRUN.md")
-  .action(async (opts: { out: string }) => {
+  .option("--no-hook", "don't install/refresh the Claude Code SessionStart hook")
+  .action(async (opts: { out: string; hook: boolean }) => {
     const root = process.cwd();
     console.log(pc.dim(`Scanning ${root} ...`));
 
@@ -58,6 +60,13 @@ program
         (resolvedCount ? pc.green(`  ${resolvedCount} resolved`) : "")
     );
     console.log(pc.dim(`Written to ${opts.out}`));
+
+    if (opts.hook) {
+      const { installed } = ensureSessionStartHook(root);
+      if (installed) {
+        console.log(pc.dim("Installed a Claude Code SessionStart hook (.claude/settings.json) — open Claude Code in this repo and it'll know about open findings automatically."));
+      }
+    }
   });
 
 program

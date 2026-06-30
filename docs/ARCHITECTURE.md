@@ -17,6 +17,8 @@ src/
   scan.ts             orchestrator — runs all checks, flattens results
   report.ts           renders Finding[] -> SHIPRUN.md markdown
   store.ts            .shiprun/findings.json persistence + reconciliation
+  hook.ts              generates .claude/hooks/shiprun-context.cjs +
+                        registers it in the target repo's .claude/settings.json
   checks/
     secrets.ts         env exposure, literal keys, service-role key misuse
     rls.ts             missing Row Level Security on Supabase tables
@@ -120,6 +122,36 @@ documented with its exact failure mode: until the judgment-call layer
 exists, dismissal (`shiprun dismiss <id>`) is the only way to handle a check
 that's technically correct about what it found but wrong about whether it
 matters.
+
+## Why a SessionStart hook, not an MCP server (yet)
+
+The original design discussion considered an MCP server as the mechanism for
+getting findings into Claude's context. That's overkill for what v1 actually
+needs: a one-way push of a short summary at the start of a session, not a
+queryable tool Claude calls mid-conversation.
+
+`hook.ts` implements this as cheaply as the Claude Code hook contract allows:
+
+- `ensureSessionStartHook(root)` writes a generated `.cjs` script to
+  `.claude/hooks/shiprun-context.cjs` and registers it under
+  `hooks.SessionStart` in `.claude/settings.json`, with `matcher: "startup"`.
+- The script reads `.shiprun/findings.json` directly off disk — no IPC, no
+  server process, no port. It prints plain text to stdout; Claude Code
+  injects that text into context before the first prompt of the session
+  (capped at 10,000 characters server-side; in practice this script's output
+  is under 300).
+- It fails closed: any error (missing file, malformed JSON) hits a bare
+  `catch` that exits 0 with no output, so a broken store can never block
+  Claude Code from starting a session.
+- Registration is **merge, not overwrite** — `ensureSessionStartHook` reads
+  any existing `.claude/settings.json`, only appends if no `shiprun-context`
+  hook is already present, and leaves an unparseable existing file alone
+  entirely rather than risk corrupting the user's settings.
+
+An MCP server becomes worth the complexity once findings need to be
+*queried* mid-conversation (e.g. "what's the history of changes to the
+payments module") rather than just summarized at session start — that's
+still future work, gated on whether anyone asks for it.
 
 ## Why npm/TypeScript, not Python or Rust
 
