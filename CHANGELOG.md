@@ -2,6 +2,20 @@
 
 All notable changes to this project are documented in this file.
 
+## Unreleased
+
+**Presentation pass — first-impression strength, no new checks.**
+
+Added:
+- `Readiness: N/100` score, shown in both terminal output and at the top of
+  `SHIPRUN.md` (weighted by open finding severity — see
+  [docs/CHECKS.md](docs/CHECKS.md#readiness-score)).
+- Phase breakdown table at the top of `SHIPRUN.md`.
+- README rewritten with a real captured sample (terminal + report excerpt)
+  instead of a description-only pitch.
+- Full documentation set: `docs/CHECKS.md`, `docs/ARCHITECTURE.md`,
+  `CHANGELOG.md`, `LICENSE`.
+
 ## 0.3.0
 
 **Strengthened existing checks — no new architecture.**

@@ -1,16 +1,51 @@
 # shiprun
 
-Scans your vibe-coded Next.js + Supabase app and tells you exactly what's
-missing to make it production-ready — as a phased, file:line checklist that
-remembers what you've already fixed or dismissed, not a one-shot generic
-scanner dump.
+**Your vibe-coded app works. Does it leak data?**
+
+`shiprun` scans a Next.js + Supabase repo and tells you exactly what's
+missing to make it production-ready — a phased, file:line checklist that
+remembers what you've fixed or dismissed, not a one-shot generic scanner
+dump.
 
 ```
 npx shiprun
 ```
 
-That's the whole interface. No account, no API key, no config required to
-get a first result.
+No account, no API key, no config. One command, ~5 seconds, a real answer.
+
+## What you get
+
+Run it on a repo with an unauthenticated admin route and a couple of missing
+basics, and the terminal looks like this:
+
+```
+$ shiprun
+
+Readiness: 85/100
+4 open finding(s)  1 high  (4 new)
+Written to SHIPRUN.md
+```
+
+`SHIPRUN.md` has the detail — severity, exact file and line, why it matters,
+and an `id` you can dismiss if it doesn't apply:
+
+```markdown
+### Readiness: 85/100 — Close — a few gaps to close
+
+## Phase 1 — Has the auth/validation a real app needs
+
+- [ ] **🟠 HIGH** API route queries the database with no visible auth check `app/api/admin/route.ts`
+      This route calls the database but no auth/session check (e.g. supabase.auth.getUser,
+      getServerSession) was found in the file. If this route is meant to be restricted,
+      verify the caller's identity before querying.
+      id: `auth-missing-app/api/admin/route.ts`
+```
+
+Both blocks above are real output from a real (throwaway) fixture repo — not
+mockups. Fix the route, run `shiprun` again, and that finding disappears and
+gets logged as resolved. Decide it's intentional instead, and
+`shiprun dismiss auth-missing-app/api/admin/route.ts` keeps it out of every
+future report.
 
 ## Why this exists
 
@@ -68,8 +103,8 @@ This is shorthand for `shiprun scan`. It:
    four phases, each with severity, file:line, an explanation, and a
    dismissable `id`.
 5. Appends one line to `.shiprun/history.jsonl`.
-6. Prints a one-line summary to the terminal (open count, critical/high
-   counts, new/resolved since last scan).
+6. Prints a readiness score and summary to the terminal (open count,
+   critical/high counts, new/resolved since last scan).
 
 ### The four phases
 

@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { Command } from "commander";
 import pc from "picocolors";
 import { runScan } from "./scan.js";
-import { renderMarkdown } from "./report.js";
+import { renderMarkdown, readinessScore } from "./report.js";
 import { reconcile, dismissFinding, reopenFinding, listAllFindings, appendHistory } from "./store.js";
 import type { FindingStatus } from "./store.js";
 
@@ -45,8 +45,11 @@ program
 
     const critical = active.filter((f) => f.severity === "critical").length;
     const high = active.filter((f) => f.severity === "high").length;
+    const score = readinessScore(active);
+    const scoreColor = score >= 90 ? pc.green : score >= 70 ? pc.yellow : pc.red;
 
     console.log("");
+    console.log(scoreColor(pc.bold(`Readiness: ${score}/100`)));
     console.log(
       pc.bold(`${active.length} open finding(s)`) +
         (critical ? pc.red(`  ${critical} critical`) : "") +

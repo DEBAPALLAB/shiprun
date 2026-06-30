@@ -18,6 +18,27 @@ const SEVERITY_BADGE: Record<Severity, string> = {
   low: "⚪ LOW",
 };
 
+// Heuristic, not a certification — weights penalize the phases that actually
+// cause incidents (data exposure, auth) harder than deploy/observability gaps.
+const SEVERITY_PENALTY: Record<Severity, number> = {
+  critical: 15,
+  high: 8,
+  medium: 3,
+  low: 1,
+};
+
+export function readinessScore(findings: Finding[]): number {
+  const penalty = findings.reduce((sum, f) => sum + SEVERITY_PENALTY[f.severity], 0);
+  return Math.max(0, 100 - penalty);
+}
+
+function readinessLabel(score: number): string {
+  if (score >= 90) return "Ready to ship";
+  if (score >= 70) return "Close — a few gaps to close";
+  if (score >= 40) return "Not ready — real gaps open";
+  return "Not ready — critical gaps open";
+}
+
 export interface ReportMeta {
   newCount: number;
   resolvedCount: number;
@@ -28,6 +49,10 @@ export function renderMarkdown(stack: StackInfo, findings: Finding[], meta?: Rep
   const lines: string[] = [];
   lines.push("# shiprun report", "");
   lines.push(`Stack detected: ${stack.isNextJs ? "Next.js" : "unknown framework"}${stack.usesSupabase ? " + Supabase" : ""}`, "");
+
+  const score = readinessScore(findings);
+  lines.push(`### Readiness: ${score}/100 — ${readinessLabel(score)}`, "");
+  lines.push("_Heuristic from open finding severity, not a certification — see docs/CHECKS.md for what each check does and doesn't catch._", "");
 
   if (meta && (meta.newCount > 0 || meta.resolvedCount > 0 || meta.dismissedCount > 0)) {
     const parts: string[] = [];
@@ -45,6 +70,14 @@ export function renderMarkdown(stack: StackInfo, findings: Finding[], meta?: Rep
   const total = findings.length;
   const critical = findings.filter((f) => f.severity === "critical").length;
   lines.push(`**${total} open finding${total === 1 ? "" : "s"}** (${critical} critical)`, "");
+
+  lines.push("| Phase | Open |", "|---|---|");
+  for (const phase of PHASE_ORDER) {
+    const count = findings.filter((f) => f.phase === phase).length;
+    if (count === 0) continue;
+    lines.push(`| ${PHASE_TITLES[phase]} | ${count} |`);
+  }
+  lines.push("");
 
   for (const phase of PHASE_ORDER) {
     const phaseFindings = findings

@@ -9,6 +9,16 @@ Each finding has a stable `id`. Use that id with `shiprun dismiss <id>` if a
 finding doesn't apply to your situation — see [README.md](../README.md#persistence)
 for the persistence model.
 
+### Readiness score
+
+`SHIPRUN.md` and the terminal output both show `Readiness: N/100`. It's
+computed in `src/report.ts` as `100 - sum(penalty per open finding)`, where
+`critical = 15`, `high = 8`, `medium = 3`, `low = 1`, floored at 0. This is a
+heuristic for "how loud should this number be," not a certification — two
+repos with the same score can have very different actual risk if one's
+findings are all dismissable false positives and the other's aren't. Read
+the actual findings, not just the number.
+
 ---
 
 ## Phase 0 — Doesn't leak data
