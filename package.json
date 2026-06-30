@@ -1,0 +1,39 @@
+{
+  "name": "shiprun",
+  "version": "0.3.0",
+  "description": "Scans your vibe-coded Next.js + Supabase app and tells you exactly what's missing to make it production-ready.",
+  "type": "module",
+  "bin": {
+    "shiprun": "./dist/cli.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx src/cli.ts",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "vibe-coding",
+    "security",
+    "audit",
+    "nextjs",
+    "supabase",
+    "cli"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "commander": "^12.1.0",
+    "fast-glob": "^3.3.2",
+    "picocolors": "^1.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "tsx": "^4.16.0",
+    "typescript": "^5.5.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
